@@ -1,0 +1,77 @@
+Ah, okay\! This is a very interesting and advanced task. Your instructor is asking you to compare two different ways to "predict" the future.
+
+This means you and your teammate are **both** building "models."
+
+  * **Your Teammate's Project:** A **Statistics Model** (looks at the *past* to guess the *future*).
+  * **Your New Project:** A **Physics Model** (uses *real-world orbital mechanics* to calculate the *future*).
+
+Here is the simple explanation of your TLE-based "Physics Model."
+
+-----
+
+## What is a TLE?
+
+A TLE (Two-Line Element set) is just a small text file that acts as a **satellite's "driving directions."**
+
+A TLE looks like this:
+
+```
+GPS BIIRM-7 (PRN 17)
+1 31135U 06052A   25307.38289450  .00000000  00000-0  00000-0 0  9990
+2 31135  55.0345  78.9663 0013317 220.1804 139.7346  2.00557438139886
+```
+
+By feeding these numbers into a special calculator (called a "propagator"), you can find that satellite's **TRUE, EXACT position** at any time in the world. You can get TLEs for free from websites like [CelesTrak](https://celestrak.org/).
+
+-----
+
+## How to Use a TLE to Change Your Parameters
+
+This is the "Physics Model." You are going to re-calculate the *real* correction, just like a professional SBAS ground station does.
+
+**The Goal:** The SBAS correction (like in MT 25) is simply the **error** between a satellite's *reported* position and its *true* position.
+
+Here are the steps in simple words:
+
+1.  **Get the "Reported" (Wrong) Position:**
+    First, you need the *broadcast ephemeris*. This is the navigation message that a normal GPS satellite sends out. It tells you where the satellite *thinks* it is. This position always has small errors. (This is the hardest data to get).
+
+2.  **Get the "True" (Correct) Position:**
+    At the *exact same time*, you get a TLE for that same GPS satellite. You use a TLE calculator to find its *true, real* position in space.
+
+3.  **Calculate the Error:**
+    You subtract the two positions:
+    `Error = (True Position from TLE) - (Reported Position)`
+
+4.  **This Error IS Your Parameter\!**
+    The `Error` you just calculated is *exactly* what you put into your SBAS messages.
+
+      * The `Error in position` (e.g., -0.5 meters X, +0.1 meters Y) becomes the parameter for **Message Type 25 (Long Term Corrections)**.
+      * The `Error in velocity` (how fast that error is changing) becomes the parameter for **Message Type 2-5 (Fast Corrections)**.
+
+You would then re-encode these new error values into your 32-byte messages and send them.
+
+-----
+
+## Comparison: Your Model vs. Your Teammate's Model
+
+This is the main point of your assignment.
+
+### Your Teammate's Approach ("Model Training")
+
+  * **How it works:** It looks at the **past** data in `parsing_file.25B`. It sees a pattern (e.g., "the correction is growing by 0.1m every 10 minutes"). It uses statistics (like "linear regression") to **guess** what the *next* number in the sequence will be.
+  * **Pros:** Much, much simpler to code. You only need the `parsing_file.25B`.
+  * **Cons:** It's just a guess. It's not based on reality. It will become **very wrong, very quickly** (it will "drift"). It's only good for a few minutes.
+
+### Your Approach (The "TLE Model")
+
+  * **How it works:** It uses **real-time, real-world physics**. It calculates the *actual* error for the satellite.
+  * **Pros:** This is the **correct, professional way** to build an SBAS system. It is extremely accurate. Your parameters will be "true" for hours.
+  * **Cons:** It is **100 times harder** to build. You need to get live TLE data, get live broadcast ephemeris data, and write a complex orbital physics calculator.
+
+### Which is "Best"?
+
+  * **Your TLE (Physics) Model** is the **best technical solution**. It's the "gold standard" and how real systems work.
+  * **Your Teammate's (Statistics) Model** is probably the **best practical choice for your class project**. It's much simpler to build, and it *does* "change the parameters," which is what your instructor wants to see.
+
+Your instructor likely wants you to research *both* methods, see that the TLE method is the "correct" but "very hard" way, and see that the "model training" method is a "simpler" (but less accurate) way to do the same thing.
